@@ -20,6 +20,9 @@ public class ImapTool
 			"ImapTool list url folder - print messages in parent folder\n" +
 			"\turl - imap server url\n" +
 			"\tfolder - parent folder\n" +
+			"ImapTool copy srcUrl srcFolder dstUrl dstFolder - copy messages\n" +
+			"\t*Url - imap server url\n" +
+			"\t*Folder - parent folder\n" +
 			"url := imap://user:password@host[:port]\n" +
 			"\tuser and password are urlencoded (if needed)\n" +
 			"folder := folder | folder.subfolder | ...";
@@ -75,6 +78,45 @@ public class ImapTool
 		store.close();
 	}
 
+	private static void copyMessages(String srcUrl, String srcParent,
+			String dstUrl, String dstParent)
+		throws Exception
+	{
+		log("copying messages, srcUrl: " + srcUrl + ", srcParent: " + srcParent +
+				", dstUrl: " + dstUrl + ", dstParent: " + dstParent);
+
+        final Store srcStore = getStore(srcUrl);
+        final Store dstStore = getStore(dstUrl);
+        srcStore.connect();
+        dstStore.connect();
+		log("connected to both stores");
+
+		final Folder srcFolder = srcStore.getFolder(srcParent);
+		srcFolder.open(Folder.READ_ONLY);
+		log("opened source folder");
+
+		final Folder dstFolder = dstStore.getFolder(dstParent);
+		log("opened destination folder");
+
+		final Message[] messages = srcFolder.getMessages();
+		for (int i = 0; i < messages.length; ++i)
+		{
+			final Message m = messages[i];
+
+			log("copying " + (i+1) + " / " + messages.length + " - <" + m.getFrom()[0] +
+					"> " + m.getSubject());
+
+			final Message[] chunk = new Message[1];
+			chunk[0] = m;
+			dstFolder.appendMessages(chunk);
+		}
+
+		log("closeing");
+		srcFolder.close();
+		dstStore.close();
+		srcStore.close();
+	}
+
 	public static void main(String params[])
 		throws Exception
 	{
@@ -99,6 +141,14 @@ public class ImapTool
 				throw new RuntimeException("missing url and/or folder parameters");
 
 			listMessages(params[1], params[2]);
+		}
+
+		if (params[0].equals("copy"))
+		{
+			if (params.length != 5)
+				throw new RuntimeException("missing url and/or folder parameters");
+
+			copyMessages(params[1], params[2], params[3], params[4]);
 		}
 	}
 }
