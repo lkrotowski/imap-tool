@@ -33,7 +33,10 @@ public class ImapTool
 	private static Store getStore(String url)
 		throws Exception
 	{
-		return Session.getDefaultInstance(new Properties())
+		final Properties props = new Properties();
+		props.put("mail.imap.ssl.enable", "true");
+
+		return Session.getDefaultInstance(props)
 			.getStore(new URLName(url));
 	}
 
